@@ -1,0 +1,11 @@
+{
+  "name": "eloan-pro",
+  "version": "1.0.0",
+  "description": "eLoan Management System - Vercel + Supabase",
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cookie": "^0.6.0",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.11.3"
+  }
+}
