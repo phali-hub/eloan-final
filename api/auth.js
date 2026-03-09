@@ -1,4 +1,4 @@
-// api/auth.js — handles all auth routes: /api/auth/login, register, logout, me, change-password
+// api/auth.js — handles all auth routes via ?action=
 const bcrypt = require('bcryptjs');
 const jwt    = require('jsonwebtoken');
 const cookie = require('cookie');
@@ -6,23 +6,16 @@ const { Pool } = require('pg');
 
 const SECRET = process.env.JWT_SECRET || 'eloan_pro_secret_2025';
 
-// DB
 let pool;
 function getPool() {
-    if (!pool) {
-        pool = new Pool({
-            connectionString: process.env.DATABASE_URL,
-            ssl: { rejectUnauthorized: false },
-            max: 5,
-            idleTimeoutMillis: 30000,
-            connectionTimeoutMillis: 10000,
-        });
-    }
+    if (!pool) pool = new Pool({
+        connectionString: process.env.DATABASE_URL,
+        ssl: { rejectUnauthorized: false },
+        max: 5,
+    });
     return pool;
 }
 
-
-// Auth helpers
 function setAuthCookie(res, user) {
     const token = jwt.sign(
         { id: user.id, full_name: user.full_name, email: user.email, role: user.role },
@@ -53,7 +46,6 @@ module.exports = async (req, res) => {
     const db = getPool();
 
     try {
-        // POST /api/auth?action=login
         if (action === 'login' && req.method === 'POST') {
             const { email, password } = req.body;
             if (!email || !password) return res.status(400).json({ error: 'Email and password required.' });
@@ -65,8 +57,6 @@ module.exports = async (req, res) => {
             setAuthCookie(res, user);
             return res.json({ success: true, user: { id: user.id, full_name: user.full_name, email: user.email, role: user.role } });
         }
-
-        // POST /api/auth?action=register
         if (action === 'register' && req.method === 'POST') {
             const { full_name, email, phone, address, password } = req.body;
             if (!full_name || !email || !password) return res.status(400).json({ error: 'Name, email and password required.' });
@@ -77,21 +67,15 @@ module.exports = async (req, res) => {
                 [full_name, email, phone || null, address || null, hash]);
             return res.json({ success: true });
         }
-
-        // POST /api/auth?action=logout
         if (action === 'logout') {
             clearAuthCookie(res);
             return res.json({ success: true });
         }
-
-        // GET /api/auth?action=me
         if (action === 'me' && req.method === 'GET') {
             const user = getUser(req);
             if (!user) return res.status(401).json({ error: 'Not logged in.' });
             return res.json({ user });
         }
-
-        // POST /api/auth?action=change-password
         if (action === 'change-password' && req.method === 'POST') {
             const user = getUser(req);
             if (!user) return res.status(401).json({ error: 'Not logged in.' });
@@ -105,7 +89,6 @@ module.exports = async (req, res) => {
             await db.query('UPDATE users SET password_hash = $1 WHERE id = $2', [hash, user.id]);
             return res.json({ success: true });
         }
-
         res.status(404).json({ error: 'Unknown action.' });
     } catch (err) {
         res.status(500).json({ error: err.message });
